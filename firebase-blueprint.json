@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "CropRecord": {
+      "title": "Crop Record",
+      "description": "A record of a crop's lifecycle from planting to sale.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string", "description": "Name of the crop (e.g., Maize, Wheat)" },
+        "quantity": { "type": "number", "description": "Number of crops planted" },
+        "plantingDate": { "type": "string", "format": "date-time" },
+        "harvestDate": { "type": "string", "format": "date-time" },
+        "investmentAmount": { "type": "number", "description": "Total amount invested in this crop" },
+        "saleAmount": { "type": "number", "description": "Total amount sold for" },
+        "status": { "type": "string", "enum": ["planted", "harvested", "sold"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "quantity", "plantingDate", "investmentAmount", "status"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User specific settings and information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "/crops/{cropId}": {
+      "schema": "CropRecord",
+      "description": "Collection of crop records"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles"
+    }
+  }
+}

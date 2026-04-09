@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: crops
+    // Document ID: auto-generated
+    // Fields:
+    //   - userId: string (required) - Owner of the record
+    //   - name: string (required, 1-100 chars)
+    //   - quantity: number (required, positive)
+    //   - plantingDate: string (required, ISO8601)
+    //   - harvestDate: string (optional, ISO8601)
+    //   - investmentAmount: number (required, positive)
+    //   - saleAmount: number (optional, positive)
+    //   - status: string (required, enum: ['planted', 'harvested', 'sold'])
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: users
+    // Document ID: userId
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - displayName: string (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidCrop(data) {
+      return data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.quantity is number && data.quantity >= 0 &&
+             data.investmentAmount is number && data.investmentAmount >= 0 &&
+             data.status in ['planted', 'harvested', 'sold'] &&
+             data.createdAt is timestamp;
+    }
+
+    function isRecent(time) {
+      return time > request.time - duration.value(5, 'm') &&
+             time < request.time + duration.value(5, 'm');
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+
+    match /crops/{cropId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidCrop(request.resource.data) && isRecent(request.resource.data.createdAt);
+      allow update: if isDocOwner() && isValidCrop(request.resource.data) && 
+                    request.resource.data.userId == resource.data.userId &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isDocOwner();
+    }
+  }
+}
